@@ -1,0 +1,59 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * Write your model definitions here
+ */
+
+namespace org.dadas.cerver
+
+
+asset Certificate identified by certificateHash {
+    o String certificateHash
+    o String description optional
+    o Boolean valid default=false
+    --> CertificateType type
+    --> Organization issuer
+    --> User holder
+    --> User[] endorsers optional
+}
+
+asset CertificateType identified by orgId {
+	o String orgId
+  	--> User[] endorsers
+  	o Integer minEndorsementRequired
+    o String name
+}
+
+participant User identified by userId {
+	o String userId
+  	o String name
+}
+
+participant Organization identified by orgId {
+    o String orgId
+    o String name
+}
+
+/////////////////////////////////////////
+
+transaction PublishCertificate {
+    --> Certificate certificate
+    --> Organization issuer
+}
+
+transaction Endorse {
+    --> Certificate certificate
+  	--> User endorser
+}

@@ -1,0 +1,273 @@
+<!--The content below is only a placeholder and can be replaced.-->
+<section class="welcome">
+  <h1>
+    Welcome to Certificate Authorizitaion
+  </h1>
+</section>
+<section *ngIf="!authenticated">
+  <div style="padding: 20px"><a href="http://localhost:3000/auth/github">Sign in with github</a></div>
+
+  
+  <button (click)="openVerifyModal()" style="color:white;background-color:darkblue;font-weight: bold;">Verify Ceritificate</button>
+
+  <div id="id04" class="modal">
+    <!-- Modal Content -->
+    <div class="modal-content animate" style="text-align: center;padding: 40px;width: 41%;">
+      <span style="color:darkblue" (click)="closeModal('id04')" class="close" title="Close Modal">&times;</span>
+      <h2 style="padding-bottom: 40px;">Verify Certificate</h2>
+      <div>
+        <form>
+            <table>
+              <colgroup>
+                <col span="1" style="width: 30%;">
+                <col span="1" style="width: 70%;">
+              </colgroup>
+              <tr>
+                <td>
+                  <label>Certificate</label>
+                </td>
+                <td>
+                    <input type="file" id="verifyFile" (change)="onFileChange($event)" style="text-align: center;">
+                </td>
+              </tr>
+              <!-- <tr>
+                  <td>
+                    <label>Holder name</label>
+                  </td>
+                  <td>
+                      <input type="text" >
+                  </td>
+                </tr> -->
+                <tr >
+                    <td colspan="2"><button (click)="verifyCerti()" style="color:white;background-color:darkblue;font-weight: bold;">Verify</button></td>
+                </tr>
+            </table>
+          </form>
+        </div>
+    </div>
+  </div>
+
+</section>
+<section *ngIf="authenticated && !loggedIn">
+  <h2>Sign up</h2>
+  <form (ngSubmit)="onSignUp()" #signupForm="ngForm">
+    <table>
+      <colgroup>
+        <col span="1" style="width: 11%;">
+        <col span="1" style="width: 89%;">
+      </colgroup>
+      <tr>
+        <td>
+          <label>ID</label>
+        </td>
+        <td>
+          <input type="text" [(ngModel)]="signUp.id" #id="ngModel" name="id">
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <label>Name</label>
+        </td>
+        <td>
+          <input type="text" [(ngModel)]="signUp.firstName" #firstName="ngModel" name="firstName">
+        </td>
+      </tr>
+    </table>
+    <button type="submit" class="primary">
+      <div *ngIf="!signUpInProgress">
+        <span>Sign up</span>
+      </div>
+      <div *ngIf="signUpInProgress" class="ibm-spinner-indeterminate small loop">
+        <div class="loader">
+          <svg class="circular" viewBox="25 25 50 50">
+            <circle class="circle-path" cx="50" cy="50" r="20" />
+          </svg>
+        </div>
+      </div>
+    </button>
+  </form>
+</section>
+
+<section *ngIf="loggedIn">
+  <h2 *ngIf="currentUser">Welcome {{currentUser.name}}</h2>
+  <button *ngIf="currentUser" (click)="getUserCertificates()">Get User Certificates</button>
+  <button *ngIf="currentUser" (click)="getEndorsableCertificates()">Get User Endorsable Certificates</button>
+  <button *ngIf="currentUser && currentUser.canUpload" (click)="openUploadModal()">Issue Certificate</button>
+  <button *ngIf="currentUser" (click)="logout()">Logout</button>
+
+  <table *ngIf="userCertificatesCheck">
+    <tr style="text-align: -webkit-left;">
+      <th style="padding:10px">Certificate Hash</th>
+      <th>CertificateType</th>
+      <th>Issuer</th>
+      <th>Endorse</th>
+    </tr>
+    <tr *ngFor="let certificate of certificates" [ngClass]="{'color-red': certificate.valid == false}" class="color-green"
+      style="color:white;">
+      <td>{{certificate.certificateHash}}</td>
+      <td>{{certificate.type.name}}</td>
+      <td>{{certificate.issuer.name}}</td>
+      <td *ngIf="checkCanEndorse(certificate)"><button style="min-width:105px;" (click)="endorse(certificate)">Endorse</button></td>
+      <td *ngIf="!checkCanEndorse(certificate)">Already Endorse</td>
+      <td><button style="min-width:105px;" style="min-width:105px;" (click)="showCertificate(certificate)">View</button></td>
+    </tr>
+  </table>
+  <table *ngIf="userEndorsableCertificatesCheck">
+    <tr style="text-align: -webkit-left;">
+      <th style="padding:10px">Certificate Hash</th>
+      <th>Holder</th>
+      <th>CertificateType</th>
+      <th>Issuer</th>
+      <th>Endorse</th>
+    </tr>
+    <tr *ngFor="let certificate of endorsableCertificates" [ngClass]="{'color-red': certificate.valid == false}" class="color-green"
+      style="color:white;">
+      <td>{{certificate.certificateHash}}</td>
+      <td>{{certificate.holder.name}}</td>
+      <td>{{certificate.type.name}}</td>
+      <td>{{certificate.issuer.name}}</td>
+      <td *ngIf="checkCanEndorse(certificate)"><button style="min-width:105px;" (click)="endorse(certificate)">Endorse</button></td>
+      <td *ngIf="!checkCanEndorse(certificate)">Already Endorse</td>
+      <td><button style="min-width:105px;" (click)="showCertificate(certificate)">View</button></td>
+    </tr>
+  </table>
+
+  <div id="id01" class="modal">
+    <!-- Modal Content -->
+    <form class="modal-content animate" style="text-align: center;padding-top: 10px;">
+      <span (click)="closeModal('id01')" class="close" title="Close Modal">&times;</span>
+      <h2 style="padding: 20px;">Upload Certificate file to verify hash</h2>
+      <input type="file" id="certificateFile" (change)="onFileChange($event)" style="text-align: center;">
+      <div *ngIf="verifyUploadedFile(); else templateName" style="padding-top: 10px;padding-bottom: 10px;">
+        <p style="background-color: lightgreen;color:white">Certificate Hash Verified Successfullly!</p>
+        <button (click)="endorseCertificate()" style="background-color: lightgreen;color:white;">Endorse</button>
+      </div>
+      <ng-template #templateName>
+        <p style="background-color: lightcoral;color:white">Certificate Hash didn't match!</p>
+      </ng-template>
+    </form>
+  </div>
+
+  <div id="id02" class="modal">
+    <!-- Modal Content -->
+    <div *ngIf="selectedCertificate" class="modal-content animate" style="text-align: center;padding-top: 40px;width: 41%; background-color: darkblue">
+      <span style="color:white;color: white;
+      font-size: 32px;
+      position: relative;
+      top: -37px;">Certificate
+        Details</span>
+      <span style="color:white" (click)="closeModal('id02')" class="close" title="Close Modal">&times;</span>
+      <table class="details">
+        <!--style="text-align: left;border-collapse: collapse;width: inherit" border="1" >-->
+        <tr>
+          <th>Certificate Hash</th>
+          <td style="font-size: 10px">{{selectedCertificate.certificateHash}}</td>
+        </tr>
+        <tr>
+          <th>Description</th>
+          <td>{{selectedCertificate.description}}</td>
+        </tr>
+        <tr>
+          <th>Endorsers</th>
+          <td>
+            <ul *ngFor="let endorser of selectedCertificate.endorsers">
+              <li>{{endorser.name}}</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <th>Certificate Type</th>
+          <td>{{selectedCertificate.type.name}}</td>
+        </tr>
+        <tr>
+          <th>Issuer</th>
+          <td>{{selectedCertificate.issuer.name}}</td>
+        </tr>
+        <tr>
+          <th>Endorsed</th>
+          <td>{{selectedCertificate.valid}}</td>
+        </tr>
+        <tr>
+          <td colspan="2">
+          <button (click)="openFile()" style="color:white;background-color:forestgreen;font-weight: bold;">Download</button>
+        </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div id="id03" class="modal">
+    <!-- Modal Content -->
+    <div class="modal-content animate" style="text-align: center;padding: 40px;width: 41%;">
+      <span style="color:darkblue" (click)="closeModal('id03')" class="close" title="Close Modal">&times;</span>
+      <h2 style="padding-bottom: 40px;">Issue Certificate</h2>
+      <div *ngIf="!ipfsSuccess">
+        <input type="file" id="uploadFile" (change)="uploadFileChange($event)" style="text-align: center;">
+      </div>
+      <form *ngIf="ipfsSuccess" (ngSubmit)="uploadCerti()" #signupForm="ngForm">
+        <table>
+          <colgroup>
+            <col span="1" style="width: 30%;">
+            <col span="1" style="width: 70%;">
+          </colgroup>
+          <tr>
+            <td>
+              <label>Certificate Hash</label>
+            </td>
+            <td>
+              <input type="text" [(ngModel)]="newCerti.certificateHash" #id="ngModel" name="certificateHash" disabled>
+            </td>
+          </tr>
+          <tr>
+              <td>
+                <label>IPFS url</label>
+              </td>
+              <td>
+                <input type="text" [(ngModel)]="newCerti.url" #id="ngModel" name="url" disabled>
+              </td>
+            </tr>
+          <tr>
+            <td>
+              <label>Description</label>
+            </td>
+            <td>
+              <input type="text" [(ngModel)]="newCerti.description" name="description">
+            </td>
+          </tr>
+          <tr>
+            <td onload="certificateTypeList()">
+              <label>Certificate Type</label>
+            </td>
+            <td>
+              <select name="certificateType" [(ngModel)]="newCerti.type" style="width: 100%">
+                <option *ngFor="let type of certificateTypelistData" value={{type.id}} required>{{type.name}}</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label>Holder</label>
+            </td>
+            <td>
+              <input type="text" [(ngModel)]="newCerti.holder" name="holder" placeholder="please enter holder id like '1'">
+            </td>
+          </tr>
+
+        </table>
+        <button type="submit" class="primary">
+          <div *ngIf="!signUpInProgress">
+            <span>Upload</span>
+          </div>
+          <div *ngIf="signUpInProgress" class="ibm-spinner-indeterminate small loop">
+            <div class="loader">
+              <svg class="circular" viewBox="25 25 50 50">
+                <circle class="circle-path" cx="50" cy="50" r="20" />
+              </svg>
+            </div>
+          </div>
+        </button>
+      </form>
+    </div>
+  </div>
+
+</section>
